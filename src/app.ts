@@ -1,7 +1,7 @@
 import "@babylonjs/core/Debug/debugLayer";
 import "@babylonjs/inspector";
 import "@babylonjs/loaders/glTF";
-import { Engine, Scene, Vector3, HemisphericLight, Mesh, MeshBuilder, FreeCamera, PointerDragBehavior, Animation, EasingFunction, CircleEase, Color4 } from "@babylonjs/core";
+import { Engine, Scene, Vector3, HemisphericLight, Mesh, MeshBuilder, FreeCamera, PointerDragBehavior, Animation, EasingFunction, CircleEase, Color4, CubicEase, Color3, StandardMaterial } from "@babylonjs/core";
 import earcut from 'earcut';
 
 class App {
@@ -53,6 +53,18 @@ class App {
     }
 
     private _addSceneObjects() {
+        const boxOutsideMaterial = new StandardMaterial('box-outside', this._scene);
+        boxOutsideMaterial.diffuseColor = new Color3(1, 1, 0);
+        boxOutsideMaterial.specularColor = new Color3(1, 1, 0);
+        boxOutsideMaterial.emissiveColor = new Color3(1, 1, 0);
+        boxOutsideMaterial.ambientColor = new Color3(1, 1, 0);
+
+        const boxInsideMaterial = new StandardMaterial('box-inside', this._scene);
+        boxInsideMaterial.diffuseColor = new Color3(0, 1, 0);
+        boxInsideMaterial.specularColor = new Color3(0, 1, 0);
+        boxInsideMaterial.emissiveColor = new Color3(0, 1, 0);
+        boxInsideMaterial.ambientColor = new Color3(0, 1, 0);
+
         this._box = MeshBuilder.CreateBox("box", {
             width: 0.25, // meters
             height: 0.25,
@@ -62,10 +74,12 @@ class App {
         this._camera.setTarget(this._box.position);
 
         this._sphere = MeshBuilder.CreateSphere("sphere", { diameter: 0.25 }, this._scene);
+        this._scene.ambientColor = new Color3(1, 1, 1);
         this._sphere.position = new Vector3(0.5, 0, 0.5);
 
         this._arrow = this._createArrow();
         this._arrow.position = new Vector3(-0.5, 0, 0.5);
+        this._arrow.rotation = new Vector3(0,Math.PI*1.5,0);
 
         const pointerDragBehavior = new PointerDragBehavior({
             dragPlaneNormal: new Vector3(0,1,0)
@@ -75,18 +89,13 @@ class App {
 
         let dragStartPosition: Vector3 | undefined = undefined;
         let dragEndPosition: Vector3 | undefined = undefined;
-        pointerDragBehavior.onDragStartObservable.add((event)=>{
-            console.log("dragStart", event);
+        pointerDragBehavior.onDragStartObservable.add(() => {
             dragStartPosition = this._sphere.position.clone();
             if (this._intersectingTriangle) {
                 this._intersectingTriangle.dispose();
             }
         });
-        pointerDragBehavior.onDragObservable.add((event)=>{
-            //console.log("drag", event);
-        });
-        pointerDragBehavior.onDragEndObservable.add((event)=>{
-            console.log("dragEnd", event);
+        pointerDragBehavior.onDragEndObservable.add(() => {
             dragEndPosition = this._sphere.position.clone();
             const direction = dragEndPosition.subtract(dragStartPosition);
             const distance = 0.5; // meters
@@ -95,12 +104,7 @@ class App {
                 (direction.x / direction.length()) * distance,
                 this._arrow.position.y, 
                 (direction.z / direction.length()) * distance,
-            )); 
-            console.log('New arrow position', {
-                x: newArrowPosition.x,
-                y: newArrowPosition.y,
-                z: newArrowPosition.z
-            });
+            ));
             Animation.CreateAndStartAnimation(
                 "move-arrow",
                 this._arrow,
@@ -110,11 +114,19 @@ class App {
                 this._arrow.position.clone(), 
                 newArrowPosition,
                 Animation.ANIMATIONLOOPMODE_CONSTANT,
-                new CircleEase(),
+                new CubicEase(),
                 () => {
                     this._intersectingTriangle = this._createTriangle([ oldArrowPosition, newArrowPosition, dragStartPosition ]);
+                    if (this._box.intersectsMesh(this._intersectingTriangle, true)) {
+                        this._box.material = boxInsideMaterial;
+                    } else {
+                        this._box.material = boxOutsideMaterial;
+                    }
                 }
             );
+            this._arrow.lookAt(dragEndPosition);
+            this._arrow.rotation.x = 0;
+            this._arrow.rotation.z = 0;
         });
         this._sphere.addBehavior(pointerDragBehavior);
     }
@@ -132,7 +144,10 @@ class App {
         }, this._scene);
         arrowHead.position = new Vector3(0,0.03125,0);
         arrowBody.position = new Vector3(-0.09375,0.03125,0);
-        return Mesh.MergeMeshes([arrowHead, arrowBody], true);
+        const arrow = Mesh.MergeMeshes([arrowHead, arrowBody], true) as Mesh;
+        arrow.rotation = new Vector3(0,Math.PI/2,0);
+        arrow.bakeCurrentTransformIntoVertices();
+        return arrow;
     }
 
     private _createTriangle(vectors: Vector3[]) {
