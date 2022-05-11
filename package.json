@@ -1,0 +1,31 @@
+{
+  "name": "babylon-code-challenge",
+  "version": "1.0.0",
+  "description": "Code challenge for Marxent, completed by Ryan Rutkin",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack",
+    "start": "webpack-dev-server --port 8080"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RyanRutkin/babylon-code-challenge.git"
+  },
+  "author": "Ryan Rutkin",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/RyanRutkin/babylon-code-challenge/issues"
+  },
+  "homepage": "https://github.com/RyanRutkin/babylon-code-challenge#readme",
+  "devDependencies": {
+    "@babylonjs/core": "^5.5.6",
+    "@babylonjs/inspector": "^5.5.6",
+    "html-webpack-plugin": "^5.5.0",
+    "ts-loader": "^9.3.0",
+    "typescript": "^4.6.4",
+    "webpack": "^5.72.1",
+    "webpack-cli": "^4.9.2",
+    "webpack-dev-server": "^4.9.0"
+  }
+}
